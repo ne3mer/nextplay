@@ -1,5 +1,11 @@
+// Use localhost instead of 127.0.0.1 to match backend CORS configuration
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5050';
 export const ADMIN_API_KEY = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '912A3060859n';
+
+// Debug log in development (only on server-side)
+if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('🔗 API_BASE_URL:', API_BASE_URL);
+}
 
 export const adminHeaders = (includeContentType: boolean = true, additional?: HeadersInit): HeadersInit => {
   const headers: Record<string, string> = {};

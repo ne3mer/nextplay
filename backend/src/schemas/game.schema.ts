@@ -17,7 +17,12 @@ const gameQuery = z.object({
       return undefined;
     }),
   search: z.string().optional(),
-  sort: z.string().optional()
+  sort: z.string().optional(),
+  limit: z.string().optional().transform((val) => {
+    if (!val) return undefined;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? undefined : num;
+  })
 });
 
 export const createGameSchema = z.object({

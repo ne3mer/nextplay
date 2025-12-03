@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { SearchBar } from '@/components/filters/SearchBar';
 import { CreativeBanner } from '@/components/sections/CreativeBanner';
+import { HomeCarousel } from '@/components/sections/HomeCarousel';
 import { NewArrivalsSection } from '@/components/sections/NewArrivalsSection';
 import { PopularGamesSection } from '@/components/sections/PopularGamesSection';
 import { CategoriesSection } from '@/components/sections/CategoriesSection';
@@ -13,7 +14,7 @@ import { catalogGames } from '@/data/catalog';
 import { defaultHomeContent, type HomeContent, type HeroContent, type Spotlight as CMSHighlight } from '@/data/homeContent';
 import { formatToman } from '@/lib/format';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5050';
+import { API_BASE_URL } from '@/lib/api';
 
 type MarketingSnapshot = {
   settings: {
@@ -23,44 +24,122 @@ type MarketingSnapshot = {
 
 const fetchMarketingSnapshot = async (): Promise<MarketingSnapshot | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/marketing`, {
+    const url = `${API_BASE_URL}/api/marketing`;
+    const response = await fetch(url, {
       next: { revalidate: 120 }
     });
-    if (!response.ok) throw new Error('Failed to load marketing settings');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to load marketing settings from ${url}:`, response.status, errorText);
+      throw new Error(`Failed to load marketing settings: ${response.status}`);
+    }
     const payload = await response.json();
     return payload?.data ?? null;
   } catch (error) {
-    console.warn('Marketing snapshot unavailable:', error);
+    console.error('Marketing snapshot unavailable:', error);
     return null;
   }
 };
 
 const fetchHomeSettings = async (): Promise<HomeContent | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/home`, {
+    const url = `${API_BASE_URL}/api/home`;
+    const response = await fetch(url, {
       next: { revalidate: 120 }
     });
-    if (!response.ok) throw new Error('Failed to load home content');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to load home content from ${url}:`, response.status, errorText);
+      throw new Error(`Failed to load home content: ${response.status}`);
+    }
     const payload = await response.json();
     return payload?.data?.settings ?? null;
   } catch (error) {
-    console.warn('Home content unavailable:', error);
+    console.error('Home content unavailable:', error);
     return null;
   }
 };
 
+const fetchGames = async () => {
+  try {
+    // Ensure we're using the correct API URL
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5050';
+    const url = `${apiUrl}/api/games?limit=12`;
+    console.log('🔍 Fetching games from:', url);
+    console.log('🔍 API_BASE_URL constant:', API_BASE_URL);
+    console.log('🔍 process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    const response = await fetch(url, {
+      next: { revalidate: 0 },
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Add cache control for development
+      cache: 'no-store'
+    });
+    console.log('📡 Response status:', response.status, response.statusText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Failed to load games from ${url}:`, response.status, errorText);
+      return [];
+    }
+    const payload = await response.json();
+    console.log('✅ Received games payload:', {
+      hasData: !!payload.data,
+      dataLength: payload.data?.length || 0,
+      firstGame: payload.data?.[0] ? {
+        id: payload.data[0].id,
+        title: payload.data[0].title,
+        slug: payload.data[0].slug
+      } : null
+    });
+    return payload.data || [];
+  } catch (error) {
+    console.error('❌ Games unavailable:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message, error.stack);
+    }
+    return [];
+  }
+};
+
 export default async function HomePage() {
-  const [snapshot, homeSettings] = await Promise.all([fetchMarketingSnapshot(), fetchHomeSettings()]);
+  const [snapshot, homeSettings, games] = await Promise.all([
+    fetchMarketingSnapshot(),
+    fetchHomeSettings(),
+    fetchGames()
+  ]);
+  console.log('🏠 HomePage rendered with games:', games.length, games);
   const bannerContent = snapshot?.settings?.bannerContent ?? defaultBannerContent;
-  const homeContent = homeSettings ?? defaultHomeContent;
+  const homeContent: HomeContent = homeSettings ? { ...defaultHomeContent, ...homeSettings } : defaultHomeContent;
+
+  // Debug: Show what we received (remove this after debugging)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Debug - Games data:', JSON.stringify(games, null, 2));
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950/90 via-slate-50 to-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-10 md:px-8">
+        {/* Debug info - remove after fixing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="rounded-lg bg-yellow-100 p-4 text-sm">
+            <p><strong>Debug Info:</strong></p>
+            <p>Games fetched: {games.length}</p>
+            <p>API URL: {API_BASE_URL}</p>
+            <p>First game: {games[0]?.title || 'None'}</p>
+            <p>First game has coverUrl: {games[0]?.coverUrl ? 'Yes' : 'No'}</p>
+            <p>First game basePrice: {games[0]?.basePrice || 'N/A'}</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer font-bold">View all games data</summary>
+              <pre className="mt-2 overflow-auto text-xs">{JSON.stringify(games, null, 2)}</pre>
+            </details>
+          </div>
+        )}
         <HeroShowcase hero={homeContent.hero} />
+        <HomeCarousel slides={homeContent.carouselSlides} />
         <SearchBar />
         <SpotlightTiles highlights={homeContent.spotlights} />
-        <ProductShowcase />
+        <ProductShowcase games={games} />
         <CreativeBanner content={bannerContent} />
         <NewArrivalsSection />
         <PopularGamesSection />
@@ -151,8 +230,18 @@ const SpotlightTiles = ({ highlights }: { highlights: CMSHighlight[] }) => {
   );
 };
 
-const ProductShowcase = () => {
-  const spotlight = catalogGames.slice(0, 3);
+const ProductShowcase = ({ games }: { games: any[] }) => {
+  console.log('🎮 ProductShowcase received games:', games.length, games);
+  // Show all games if available, otherwise fallback to catalog
+  const spotlight = games.length > 0 ? games : catalogGames.slice(0, 3);
+  console.log('✨ Spotlight games:', spotlight.length, spotlight.map(g => ({ 
+    id: g?.id, 
+    title: g?.title,
+    hasCoverUrl: !!g?.coverUrl,
+    hasCover: !!g?.cover,
+    basePrice: g?.basePrice,
+    price: g?.price
+  })));
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
@@ -165,31 +254,42 @@ const ProductShowcase = () => {
         </Link>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        {spotlight.map((game) => (
-          <article
-            key={game.id}
-            className="group relative overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-lg transition hover:-translate-y-1"
-          >
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-900/90 to-transparent opacity-70" />
-            <div className="relative">
-              <div className="relative h-56 w-full overflow-hidden rounded-2xl">
-                <Image src={game.cover} alt={game.title} fill sizes="(max-width: 768px) 90vw, 300px" className="object-cover" />
-                <div className="absolute left-3 top-3 flex gap-2 text-xs font-bold">
-                  <span className="rounded-full bg-slate-900/70 px-3 py-1 text-white">{game.platform}</span>
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-slate-900">{game.region}</span>
+        {spotlight.length > 0 ? spotlight.map((game) => {
+          if (!game || !game.id) {
+            console.warn('Invalid game object:', game);
+            return null;
+          }
+          return (
+            <article
+              key={game.id}
+              className="group relative overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-lg transition hover:-translate-y-1"
+            >
+              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-900/90 to-transparent opacity-70" />
+              <div className="relative">
+                <div className="relative h-56 w-full overflow-hidden rounded-2xl">
+                  <Image
+                    src={game.coverUrl || game.cover || 'https://images.igdb.com/igdb/image/upload/t_cover_big/nocover.webp'}
+                    alt={game.title || 'Game'}
+                    fill
+                    sizes="(max-width: 768px) 90vw, 300px"
+                    className="object-cover"
+                  />
+                  <div className="absolute left-3 top-3 flex gap-2 text-xs font-bold">
+                    <span className="rounded-full bg-slate-900/70 px-3 py-1 text-white">{game.platform || 'PS5'}</span>
+                    <span className="rounded-full bg-white/80 px-3 py-1 text-slate-900">{game.regionOptions?.[0] || game.region || 'R2'}</span>
+                  </div>
+                  {(game.safeAccountAvailable ?? game.isSafe) && (
+                    <span className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
+                      Safe
+                    </span>
+                  )}
                 </div>
-                {game.isSafe && (
-                  <span className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
-                    Safe
-                  </span>
-                )}
-              </div>
-              <div className="mt-4 space-y-2">
-                <h3 className="text-xl font-bold text-slate-900">{game.title}</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-slate-900">{formatToman(game.price)}</span>
-                  <span className="text-xs text-slate-500">تومان</span>
-                </div>
+                <div className="mt-4 space-y-2">
+                  <h3 className="text-xl font-bold text-slate-900">{game.title || 'Untitled Game'}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-slate-900">{formatToman(game.basePrice || game.price || 0)}</span>
+                    <span className="text-xs text-slate-500">تومان</span>
+                  </div>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-600">
                   <span className="rounded-full border border-slate-200 px-3 py-1">تحویل فوری</span>
                   <span className="rounded-full border border-slate-200 px-3 py-1">پشتیبانی آنلاین</span>
@@ -208,7 +308,12 @@ const ProductShowcase = () => {
               </div>
             </div>
           </article>
-        ))}
+          );
+        }).filter(Boolean) : (
+          <div className="col-span-3 text-center py-8 text-slate-500">
+            No games available
+          </div>
+        )}
       </div>
     </section>
   );

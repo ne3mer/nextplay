@@ -26,25 +26,53 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const url = `${API_BASE_URL}/api/auth/login`;
+      console.log('🔐 Attempting login to:', url);
+      console.log('📧 Email:', email);
+      
+      const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
 
-      const payload = await response.json().catch(() => ({}));
+      console.log('📡 Login response status:', response.status, response.statusText);
 
-      if (!response.ok) {
-        throw new Error(payload?.message ?? 'ورود ناموفق بود.');
+      let payload;
+      try {
+        payload = await response.json();
+        console.log('📋 Login payload:', payload);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response:', parseError);
+        const text = await response.text().catch(() => '');
+        console.error('📦 Raw response:', text);
+        throw new Error('پاسخ سرور نامعتبر است. لطفا دوباره تلاش کنید.');
       }
 
-      persistAuthSession(payload?.data?.token, payload?.data?.user);
+      if (!response.ok) {
+        const errorMessage = payload?.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.error('❌ Login failed:', errorMessage, payload);
+        throw new Error(errorMessage);
+      }
+
+      if (!payload?.data?.token) {
+        console.error('❌ No token in response:', payload);
+        throw new Error('پاسخ سرور نامعتبر است. لطفا دوباره تلاش کنید.');
+      }
+
+      console.log('✅ Login successful, persisting session...');
+      persistAuthSession(payload.data.token, payload.data.user);
       setStatus('success');
       setMessage('ورود موفق! در حال انتقال...');
       setTimeout(() => router.push('/account'), 800);
     } catch (err) {
+      console.error('❌ Login error:', err);
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'ورود با مشکل مواجه شد.');
+      const errorMessage = err instanceof Error ? err.message : 'ورود با مشکل مواجه شد.';
+      setMessage(errorMessage);
     }
   };
 

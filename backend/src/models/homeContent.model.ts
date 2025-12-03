@@ -45,8 +45,21 @@ export interface Testimonial {
   highlight?: boolean;
 }
 
+export interface CarouselSlide {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
+  accent: string;
+}
+
 export interface HomeContentDocument extends Document {
   hero: HeroContent;
+  carouselSlides: CarouselSlide[];
   spotlights: Spotlight[];
   trustSignals: TrustSignal[];
   testimonials: Testimonial[];
@@ -116,9 +129,25 @@ const testimonialSchema = new Schema<Testimonial>(
   { _id: false }
 );
 
+const carouselSlideSchema = new Schema<CarouselSlide>(
+  {
+    id: { type: String, required: true },
+    badge: { type: String, required: true },
+    title: { type: String, required: true },
+    subtitle: { type: String, required: true },
+    description: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    ctaLabel: { type: String, required: true },
+    ctaHref: { type: String, required: true },
+    accent: { type: String, required: true }
+  },
+  { _id: false }
+);
+
 const homeContentSchema = new Schema<HomeContentDocument>(
   {
     hero: { type: heroSchema, required: true },
+    carouselSlides: { type: [carouselSlideSchema], default: [] },
     spotlights: { type: [spotlightSchema], default: [] },
     trustSignals: { type: [trustSchema], default: [] },
     testimonials: { type: [testimonialSchema], default: [] }

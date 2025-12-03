@@ -28,6 +28,18 @@ const spotlightSchema = z.object({
   accent: z.string().min(1)
 });
 
+const carouselSlideSchema = z.object({
+  id: z.string().min(1),
+  badge: z.string().min(1),
+  title: z.string().min(1),
+  subtitle: z.string().min(1),
+  description: z.string().min(1),
+  imageUrl: z.string().min(1),
+  ctaLabel: z.string().min(1),
+  ctaHref: z.string().min(1),
+  accent: z.string().min(1)
+});
+
 const trustSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -56,6 +68,7 @@ export const updateHomeContentSchema = z.object({
   body: z
     .object({
       hero: heroSchema.optional(),
+      carouselSlides: z.array(carouselSlideSchema).optional(),
       spotlights: z.array(spotlightSchema).optional(),
       trustSignals: z.array(trustSchema).optional(),
       testimonials: z.array(testimonialSchema).optional()

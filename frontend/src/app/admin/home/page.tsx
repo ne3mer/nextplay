@@ -9,6 +9,8 @@ const emptyMessage = 'برای ذخیره تغییرات، NEXT_PUBLIC_ADMIN_API
 
 const fallback = (value: string | undefined, def: string) => (value && value.trim().length ? value : def);
 
+type ArraySection = 'carouselSlides' | 'spotlights' | 'trustSignals' | 'testimonials';
+
 const sanitizeHomeContent = (payload: HomeContentState): HomeContentState => {
   const heroStats = payload.hero.stats
     .map((stat, index) => ({
@@ -19,6 +21,24 @@ const sanitizeHomeContent = (payload: HomeContentState): HomeContentState => {
     .filter((stat) => stat.label && stat.value);
 
   const stats = heroStats.length ? heroStats : defaultHomeContent.hero.stats;
+
+  const baseSlides = defaultHomeContent.carouselSlides;
+  const carouselSlides = (payload.carouselSlides ?? [])
+    .map((slide, index) => {
+      const template = baseSlides[index % baseSlides.length] ?? baseSlides[0];
+      return {
+        id: slide.id || crypto.randomUUID(),
+        badge: fallback(slide.badge, template.badge),
+        title: fallback(slide.title, template.title),
+        subtitle: fallback(slide.subtitle, template.subtitle),
+        description: fallback(slide.description, template.description),
+        imageUrl: fallback(slide.imageUrl, template.imageUrl),
+        ctaLabel: fallback(slide.ctaLabel, template.ctaLabel),
+        ctaHref: fallback(slide.ctaHref, template.ctaHref),
+        accent: fallback(slide.accent, template.accent)
+      };
+    })
+    .filter((slide) => slide.title && slide.imageUrl && slide.ctaHref && slide.ctaLabel);
 
   const spotlights = payload.spotlights
     .map((spotlight, index) => ({
@@ -63,6 +83,7 @@ const sanitizeHomeContent = (payload: HomeContentState): HomeContentState => {
       },
       stats
     },
+    carouselSlides: carouselSlides.length ? carouselSlides : defaultHomeContent.carouselSlides,
     spotlights: spotlights.length ? spotlights : defaultHomeContent.spotlights,
     trustSignals: trustSignals.length ? trustSignals : defaultHomeContent.trustSignals,
     testimonials: testimonials.length ? testimonials : defaultHomeContent.testimonials
@@ -85,7 +106,7 @@ export default function AdminHomePage() {
         }
         const payload = await response.json();
         const settings = payload?.data?.settings;
-        setContent(settings ?? defaultHomeContent);
+        setContent(settings ? { ...defaultHomeContent, ...settings } : defaultHomeContent);
       } catch (error) {
         console.error(error);
         setContent(defaultHomeContent);
@@ -128,7 +149,7 @@ export default function AdminHomePage() {
     updateSection('hero', { ...content.hero, stats });
   };
 
-  const updateArrayItem = <K extends 'spotlights' | 'trustSignals' | 'testimonials'>(
+  const updateArrayItem = <K extends ArraySection>(
     section: K,
     index: number,
     payload: Partial<HomeContentState[K][number]>
@@ -139,7 +160,7 @@ export default function AdminHomePage() {
     updateSection(section, next);
   };
 
-  const addArrayItem = <K extends 'spotlights' | 'trustSignals' | 'testimonials'>(
+  const addArrayItem = <K extends ArraySection>(
     section: K,
     template: HomeContentState[K][number]
   ) => {
@@ -148,7 +169,7 @@ export default function AdminHomePage() {
     updateSection(section, next);
   };
 
-  const removeArrayItem = <K extends 'spotlights' | 'trustSignals' | 'testimonials'>(section: K, index: number) => {
+  const removeArrayItem = <K extends ArraySection>(section: K, index: number) => {
     if (!content) return;
     const next = content[section].filter((_, i) => i !== index);
     updateSection(section, next);
@@ -203,6 +224,54 @@ export default function AdminHomePage() {
           {status}
         </div>
       )}
+
+      <ContentListEditor
+        title="اسلایدهای کاروسل"
+        description="اسلایدهای بزرگ بالای صفحه اصلی با تصویر، متن و CTA."
+        items={content.carouselSlides}
+        onAdd={() =>
+          addArrayItem('carouselSlides', {
+            id: crypto.randomUUID(),
+            badge: 'برچسب جدید',
+            title: 'عنوان اسلاید',
+            subtitle: 'زیرعنوان',
+            description: 'توضیح کوتاه...',
+            imageUrl: defaultHomeContent.carouselSlides[0].imageUrl,
+            ctaLabel: 'CTA اصلی',
+            ctaHref: '/games',
+            accent: 'emerald'
+          })
+        }
+        onChange={(index, payload) => updateArrayItem('carouselSlides', index, payload)}
+        onRemove={(index) => removeArrayItem('carouselSlides', index)}
+        fields={[
+          { key: 'badge', label: 'برچسب' },
+          { key: 'title', label: 'عنوان' },
+          { key: 'subtitle', label: 'زیرعنوان' },
+          { key: 'description', label: 'توضیح', textarea: true },
+          { key: 'imageUrl', label: 'آدرس تصویر' },
+          { key: 'ctaLabel', label: 'متن CTA' },
+          { key: 'ctaHref', label: 'لینک CTA' }
+        ]}
+        extra={(item, index) => (
+          <div className="grid gap-2 text-xs text-slate-500">
+            <label className="block">
+              تم رنگی
+              <select
+                value={String(item.accent ?? 'emerald')}
+                onChange={(e) => updateArrayItem('carouselSlides', index, { accent: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              >
+                <option value="emerald">سبز</option>
+                <option value="indigo">بنفش</option>
+                <option value="rose">رز</option>
+                <option value="slate">تیره</option>
+              </select>
+            </label>
+            <p>پیشنهاد: از تصویر رسمی کاور بازی با فرمت مربع استفاده کنید.</p>
+          </div>
+        )}
+      />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">

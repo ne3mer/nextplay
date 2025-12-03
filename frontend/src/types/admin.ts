@@ -108,6 +108,18 @@ export type HomeHeroContent = {
   stats: { id: string; label: string; value: string }[];
 };
 
+export type HomeCarouselSlide = {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
+  accent: string;
+};
+
 export type HomeSpotlight = {
   id: string;
   title: string;
@@ -134,6 +146,7 @@ export type HomeTestimonial = {
 
 export type HomeContentState = {
   hero: HomeHeroContent;
+  carouselSlides: HomeCarouselSlide[];
   spotlights: HomeSpotlight[];
   trustSignals: HomeTrustSignal[];
   testimonials: HomeTestimonial[];

@@ -13,8 +13,16 @@ export const notFoundHandler = (_req: Request, res: Response, next: NextFunction
 };
 
 export const errorHandler = (err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.log(err);
+  console.error('API Error:', {
+    message: err.message,
+    stack: err.stack,
+    statusCode: err instanceof ApiError ? err.statusCode : 500
+  });
   const statusCode = err instanceof ApiError ? err.statusCode : 500;
   const message = err.message || 'Internal server error';
-  res.status(statusCode).json({ message });
+  res.status(statusCode).json({ 
+    error: true,
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 };

@@ -11,6 +11,7 @@ export const getOrCreateHomeContent = async () => {
 
 export interface HomeContentUpdatePayload {
   hero?: HomeContentDocument['hero'];
+  carouselSlides?: HomeContentDocument['carouselSlides'];
   spotlights?: HomeContentDocument['spotlights'];
   trustSignals?: HomeContentDocument['trustSignals'];
   testimonials?: HomeContentDocument['testimonials'];
@@ -24,6 +25,9 @@ export const updateHomeContent = async (payload: HomeContentUpdatePayload) => {
 
   if (payload.hero) {
     content.hero = payload.hero;
+  }
+  if (payload.carouselSlides) {
+    content.carouselSlides = payload.carouselSlides;
   }
   if (payload.spotlights) {
     content.spotlights = payload.spotlights;

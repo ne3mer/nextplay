@@ -21,6 +21,18 @@ export type Spotlight = {
   accent: 'emerald' | 'indigo' | 'slate' | string;
 };
 
+export type HomeCarouselSlide = {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
+  accent: 'emerald' | 'indigo' | 'slate' | 'rose' | string;
+};
+
 export type TrustSignal = {
   id: string;
   title: string;
@@ -39,6 +51,7 @@ export type Testimonial = {
 
 export type HomeContent = {
   hero: HeroContent;
+  carouselSlides: HomeCarouselSlide[];
   spotlights: Spotlight[];
   trustSignals: TrustSignal[];
   testimonials: Testimonial[];
@@ -58,6 +71,41 @@ export const defaultHomeContent: HomeContent = {
       { id: 'mode', label: 'حالت اکانت', value: 'Safe & استاندارد' }
     ]
   },
+  carouselSlides: [
+    {
+      id: 'slide-spiderman',
+      badge: 'لانچ داستانی',
+      title: 'Marvel’s Spider-Man 2',
+      subtitle: 'حالت Safe + استاندارد',
+      description: 'اکانت قانونی مخصوص PS5 با فعال‌سازی مرحله‌به‌مرحله و ضد بن.',
+      imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co6j13.webp',
+      ctaLabel: 'خرید مستقیم',
+      ctaHref: '/games/marvels-spider-man-2',
+      accent: 'emerald'
+    },
+    {
+      id: 'slide-ea-fc',
+      badge: 'تورنمنت آنلاین',
+      title: 'EA SPORTS FC 25 Ultimate',
+      subtitle: 'تجربه رقابتی با کمترین پینگ',
+      description: 'با گارانتی ۷ روزه و پشتیبانی فارسی وارد فصل جدید آلتیمیت تیم شوید.',
+      imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8a3c.webp',
+      ctaLabel: 'اکانت آلتیمیت',
+      ctaHref: '/games/ea-sports-fc-25',
+      accent: 'indigo'
+    },
+    {
+      id: 'slide-elden-ring',
+      badge: 'DLC جدید',
+      title: 'Elden Ring: Shadow of the Erdtree',
+      subtitle: 'نسخه همراه با دی‌ال‌سی',
+      description: 'تحویل آنی + راهنمای نصب فارسی برای تجربه دنیای Lands Between.',
+      imageUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7zwj.webp',
+      ctaLabel: 'خرید نسخه کامل',
+      ctaHref: '/games/elden-ring-shadow-of-the-erdtree',
+      accent: 'rose'
+    }
+  ],
   spotlights: [
     {
       id: 'cta-1',
