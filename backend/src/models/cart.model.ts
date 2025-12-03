@@ -69,6 +69,7 @@ const cartSchema = new Schema<ICart>(
 );
 
 // Index for faster queries
-cartSchema.index({ userId: 1 });
+// Index for faster queries
+// cartSchema.index({ userId: 1 }); // Removed duplicate index
 
 export const CartModel = model<ICart>('Cart', cartSchema);

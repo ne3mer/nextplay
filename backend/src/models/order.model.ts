@@ -104,7 +104,7 @@ orderSchema.pre('validate', async function (next) {
 orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ 'customerInfo.email': 1 });
 orderSchema.index({ 'customerInfo.phone': 1 });
-orderSchema.index({ orderNumber: 1 }, { unique: true });
+// orderSchema.index({ orderNumber: 1 }, { unique: true }); // Removed duplicate index
 orderSchema.index({ orderNumber: 1, createdAt: -1 });
 
 export const OrderModel = model<OrderDocument>('Order', orderSchema);
